@@ -31,21 +31,15 @@ public static class ClearConsole
 	static void OnPlayModeChanged(PlayModeStateChange playModeState)
 	{
 		if (playModeState == PlayModeStateChange.EnteredPlayMode)
-		{
 			EditorSceneManager.activeSceneChanged += OnActiveSceneChanged;
-		}
 		else if (playModeState == PlayModeStateChange.ExitingPlayMode)
-		{
 			EditorSceneManager.activeSceneChanged -= OnActiveSceneChanged;
-		}
 	}
 
 	private static void OnActiveSceneChanged(UnityEngine.SceneManagement.Scene arg0, UnityEngine.SceneManagement.Scene arg1)
 	{
 		if (Enabled)
-		{
 			ClearLog();
-		}
 	}
 
 	static void ClearLog()
@@ -62,8 +56,6 @@ public static class ClearConsole
 
 		GUILayout.Toggle(m_enabled, new GUIContent("Clear Console", "Clear Console on scene changed during play mode"), GUI.skin.GetStyle("Button"), GUILayout.Width(150));
 		if (GUI.changed)
-		{
 			Enabled = !Enabled;
-		}
 	}
 }
