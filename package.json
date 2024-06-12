@@ -6,9 +6,6 @@
   "unity": "2022.3",
   "changelogUrl": "https://github.com/casteillet/unity-editor-tools/releases",
   "licensesUrl": "https://github.com/casteillet/unity-editor-tools?tab=MIT-1-ov-file#readme",
-  "dependencies": {
-    "com.marijnzwemmer.unity-toolbar-extender": "1.4.2"
-  },
   "author": {
     "name": "Casteillet",
     "email": "casteillet@gmail.com"
