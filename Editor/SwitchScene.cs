@@ -21,35 +21,15 @@ public static class SwitchScene
 
     private static void DrawLeftGUI()
     {
-        bool hasValidScene = true;
-        if (EditorBuildSettings.scenes.Length > 0)
-        {
-            foreach (EditorBuildSettingsScene editorScene in EditorBuildSettings.scenes)
-            {
-                if (!PopupSwitchScene.SceneIsValid(editorScene))
-                {
-                    hasValidScene = false;
-                    break;
-                }
-            }
-        }
-        else
-        {
-            hasValidScene = false;
-        }
+        GUILayout.FlexibleSpace();
 
-        if (hasValidScene)
-        {
-            GUILayout.FlexibleSpace();
+        GUIContent content = new(SceneManager.GetActiveScene().name);
 
-            GUIContent content = new(SceneManager.GetActiveScene().name);
+        if (EditorGUILayout.DropdownButton(content, FocusType.Passive, GUILayout.Width(150)))
+            PopupWindow.Show(buttonRect, new PopupSwitchScene());
 
-            if (EditorGUILayout.DropdownButton(content, FocusType.Passive, GUILayout.Width(150)))
-                PopupWindow.Show(buttonRect, new PopupSwitchScene());
-
-            if (Event.current.type == EventType.Repaint)
-                buttonRect = GUILayoutUtility.GetLastRect();
-        }
+        if (Event.current.type == EventType.Repaint)
+            buttonRect = GUILayoutUtility.GetLastRect();
     }
 }
 
@@ -157,15 +137,23 @@ public class PopupSwitchScene : PopupWindowContent
     #region Rendering
     public override Vector2 GetWindowSize()
     {
-        if (scrollViewContentHeight + 30 > scrollViewHeight)
+        if (EditorBuildSettings.scenes.Length > 0)
         {
-            marginRight = -11f;
-            popupHeight = 155f;
+            if (scrollViewContentHeight + 30 > scrollViewHeight)
+            {
+                marginRight = -11f;
+                popupHeight = 155f;
+            }
+            else
+            {
+                marginRight = 2f;
+                popupHeight = buttonHeight + scrollViewContentHeight + 30;
+            }
         }
         else
         {
             marginRight = 2f;
-            popupHeight = buttonHeight + scrollViewContentHeight + 30;
+            popupHeight = buttonHeight;
         }
 
         return new Vector2(popupWidth, popupHeight);
@@ -189,26 +177,34 @@ public class PopupSwitchScene : PopupWindowContent
     {
         GUILayout.BeginVertical();
 
-        DisableStartupScene = GUILayout.Toggle(DisableStartupScene, "Disable startup scene", GUI.skin.button, GUILayout.Width(popupWidth - 8 + marginRight), GUILayout.Height(headerHeight - 2));
-        if (DisableStartupScene != oldDisableStartupScene)
+        if (EditorBuildSettings.scenes.Length > 0)
         {
-            if (DisableStartupScene)
-                ResetStartScene();
-            else
-                RevertStartScene();
+            DisableStartupScene = GUILayout.Toggle(DisableStartupScene, "Disable startup scene", GUI.skin.button, GUILayout.Width(popupWidth - 8 + marginRight), GUILayout.Height(headerHeight - 2));
+            if (DisableStartupScene != oldDisableStartupScene)
+            {
+                if (DisableStartupScene)
+                    ResetStartScene();
+                else
+                    RevertStartScene();
 
-            oldDisableStartupScene = DisableStartupScene;
+                oldDisableStartupScene = DisableStartupScene;
+            }
+
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.Height(scrollViewHeight));
+
+            foreach (KeyValuePair<string, List<EditorBuildSettingsScene>> editorScene in editorScenes)
+            {
+                HeaderGUI(editorScene);
+                SceneListGUI(editorScene);
+            }
+
+            EditorGUILayout.EndScrollView();
+        }
+        else
+        {
+            GUILayout.Label("No scene found in Build Settings");
         }
 
-        scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.Height(scrollViewHeight));
-
-        foreach (KeyValuePair<string, List<EditorBuildSettingsScene>> editorScene in editorScenes)
-        {
-            HeaderGUI(editorScene);
-            SceneListGUI(editorScene);
-        }
-
-        EditorGUILayout.EndScrollView();
         GUILayout.EndVertical();
     }
 
@@ -275,7 +271,7 @@ public class PopupSwitchScene : PopupWindowContent
     #endregion
 
     #region Utilities
-    public static bool SceneIsValid(EditorBuildSettingsScene editorScene)
+    public bool SceneIsValid(EditorBuildSettingsScene editorScene)
     {
         bool result;
         try
