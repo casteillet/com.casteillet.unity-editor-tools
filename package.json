@@ -1,6 +1,6 @@
 {
   "name": "com.casteillet.unity-editor-tools",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "displayName": "Editor Tools",
   "description": "Package description",
   "unity": "2022.3",
