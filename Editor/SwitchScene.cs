@@ -313,8 +313,11 @@ public class PopupSwitchScene : PopupWindowContent
 
     private void OpenScene(string path)
     {
-        if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-            EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+        if (!Application.isPlaying)
+        {
+            if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+        }
     }
     #endregion
 }
