@@ -26,7 +26,29 @@ public static class SwitchScene
         GUIContent content = new(SceneManager.GetActiveScene().name);
 
         if (EditorGUILayout.DropdownButton(content, FocusType.Passive, GUILayout.Width(150)))
-            PopupWindow.Show(buttonRect, new PopupSwitchScene());
+        {
+            if (EditorBuildSettings.scenes.Length > 0)
+            {
+                bool validScene = false;
+                foreach (EditorBuildSettingsScene editorScene in EditorBuildSettings.scenes)
+                {
+                    if (PopupSwitchScene.SceneIsValid(editorScene))
+                    {
+                        validScene = true;
+                        break;
+                    }
+                }
+
+                if (validScene)
+                    PopupWindow.Show(buttonRect, new PopupSwitchScene());
+                else
+                    Debug.LogWarning("No valid scene found in Build Settings, please check if the scenes exist");
+            }
+            else
+            {
+                Debug.LogWarning("No scene found in Build Settings");
+            }
+        }
 
         if (Event.current.type == EventType.Repaint)
             buttonRect = GUILayoutUtility.GetLastRect();
@@ -41,12 +63,9 @@ public class PopupSwitchScene : PopupWindowContent
 
     private Dictionary<string, List<EditorBuildSettingsScene>> editorScenes = new();
 
-    private static bool disableStartupScene;
-    private bool oldDisableStartupScene;
-
     private Vector2 scrollPos;
     private readonly float popupWidth = 250f;
-    private float popupHeight;
+    private float popupHeight = 132f;
     private readonly float scrollViewHeight = 130f;
     private readonly float headerHeight = 20f;
     private readonly float buttonHeight = 20f;
@@ -65,16 +84,6 @@ public class PopupSwitchScene : PopupWindowContent
         {
             editorStartupPathScene = value;
             EditorPrefs.SetString("EditorStartupPathScene", value);
-        }
-    }
-
-    private static bool DisableStartupScene
-    {
-        get { return disableStartupScene; }
-        set
-        {
-            disableStartupScene = value;
-            EditorPrefs.SetBool("DisableStartupScene", value);
         }
     }
 
@@ -115,23 +124,20 @@ public class PopupSwitchScene : PopupWindowContent
             if (!editorScenes.ContainsKey(directoryPath))
             {
                 editorScenes[directoryPath] = new List<EditorBuildSettingsScene> { editorScene };
-                scrollViewContentHeight += headerHeight + buttonHeight;
+                scrollViewContentHeight += (headerHeight + 2f) + (buttonHeight + 2f);
             }
             else
             {
                 if (!editorScenes[directoryPath].Contains(editorScene))
                 {
                     editorScenes[directoryPath].Add(editorScene);
-                    scrollViewContentHeight += buttonHeight;
+                    scrollViewContentHeight += buttonHeight + 2f;
                 }
             }
         }
 
-        disableStartupScene = EditorPrefs.GetBool("DisableStartupScene");
         editorStartupPathScene = EditorPrefs.GetString("EditorStartupPathScene");
-
-        if (!disableStartupScene)
-            SetPlayModeStartScene(editorStartupPathScene);
+        SetPlayModeStartScene(editorStartupPathScene);
     }
 
     #region Rendering
@@ -139,21 +145,15 @@ public class PopupSwitchScene : PopupWindowContent
     {
         if (EditorBuildSettings.scenes.Length > 0)
         {
-            if (scrollViewContentHeight + 30 > scrollViewHeight)
+            if (scrollViewContentHeight + 15f > scrollViewHeight)
             {
                 marginRight = -11f;
-                popupHeight = 155f;
             }
             else
             {
                 marginRight = 2f;
-                popupHeight = buttonHeight + scrollViewContentHeight + 30;
+                popupHeight = scrollViewContentHeight + 20f;
             }
-        }
-        else
-        {
-            marginRight = 2f;
-            popupHeight = buttonHeight;
         }
 
         return new Vector2(popupWidth, popupHeight);
@@ -179,17 +179,6 @@ public class PopupSwitchScene : PopupWindowContent
 
         if (EditorBuildSettings.scenes.Length > 0)
         {
-            DisableStartupScene = GUILayout.Toggle(DisableStartupScene, "Disable startup scene", GUI.skin.button, GUILayout.Width(popupWidth - 8 + marginRight), GUILayout.Height(headerHeight - 2));
-            if (DisableStartupScene != oldDisableStartupScene)
-            {
-                if (DisableStartupScene)
-                    ResetStartScene();
-                else
-                    RevertStartScene();
-
-                oldDisableStartupScene = DisableStartupScene;
-            }
-
             scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.Height(scrollViewHeight));
 
             foreach (KeyValuePair<string, List<EditorBuildSettingsScene>> editorScene in editorScenes)
@@ -243,12 +232,19 @@ public class PopupSwitchScene : PopupWindowContent
 
             GUILayout.BeginHorizontal();
 
-            if (GUILayout.Toggle(sceneIsStartup, EditorGUIUtility.IconContent("PlayButton"), GUI.skin.button, GUILayout.Width(20), GUILayout.Height(buttonHeight)))
+            bool toogleState = GUILayout.Toggle(sceneIsStartup, EditorGUIUtility.IconContent("PlayButton"), GUI.skin.button, GUILayout.Width(20), GUILayout.Height(buttonHeight));
+            if (toogleState)
             {
                 EditorStartupPathScene = scene.path;
-
-                if (!DisableStartupScene)
-                    SetPlayModeStartScene(scene.path);
+                SetPlayModeStartScene(scene.path);
+            }
+            else
+            {
+                if (EditorStartupPathScene == scene.path)
+                {
+                    EditorStartupPathScene = null;
+                    SetPlayModeStartScene(null);
+                }
             }
 
             if (scene.enabled)
@@ -271,7 +267,7 @@ public class PopupSwitchScene : PopupWindowContent
     #endregion
 
     #region Utilities
-    public bool SceneIsValid(EditorBuildSettingsScene editorScene)
+    public static bool SceneIsValid(EditorBuildSettingsScene editorScene)
     {
         bool result;
         try
@@ -297,23 +293,22 @@ public class PopupSwitchScene : PopupWindowContent
     {
         if (EditorStartupPathScene != oldEditorStartupPathScene)
         {
-            SceneAsset startupScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath);
-            if (startupScene != null)
-                EditorSceneManager.playModeStartScene = startupScene;
+            if (scenePath != null)
+            {
+                SceneAsset startupScene = AssetDatabase.LoadAssetAtPath<SceneAsset>(scenePath);
+                if (startupScene != null)
+                    EditorSceneManager.playModeStartScene = startupScene;
+
+                //Debug.Log($"SetPlayModeStartScene: {scenePath}");
+            }
+            else
+            {
+                EditorSceneManager.playModeStartScene = null;
+                //Debug.Log("SetPlayModeStartScene: null");
+            }
 
             oldEditorStartupPathScene = EditorStartupPathScene;
         }
-    }
-
-    private void ResetStartScene()
-    {
-        if (EditorSceneManager.playModeStartScene != null)
-            EditorSceneManager.playModeStartScene = null;
-    }
-
-    private void RevertStartScene()
-    {
-        SetPlayModeStartScene(editorStartupPathScene);
     }
 
     private void OpenScene(string path)
