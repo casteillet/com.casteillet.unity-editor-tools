@@ -2,7 +2,7 @@
   "name": "com.casteillet.unity-editor-tools",
   "version": "1.0.2",
   "displayName": "Editor Tools",
-  "description": "Package description",
+  "description": "GitHub dependencies: https://github.com/marijnz/unity-toolbar-extender.git",
   "unity": "2022.3",
   "changelogUrl": "https://github.com/casteillet/unity-editor-tools/releases",
   "licensesUrl": "https://github.com/casteillet/unity-editor-tools?tab=MIT-1-ov-file#readme",
